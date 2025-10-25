@@ -73,12 +73,6 @@ public class INSPIREFetcher implements SearchBasedParserFetcher, EntryBasedFetch
 
     private final ImportFormatPreferences importFormatPreferences;
 
-    private static final int MAX_RETRIES = 3;
-    private static final long RETRY_DELAY_MS = 1000;
-    private static final String ERROR_MESSAGE_TEMPLATE = "Failed to fetch from INSPIRE for identifier '%s' after %d attempts.";
-
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(INSPIREFetcher.class);
-
     public INSPIREFetcher(ImportFormatPreferences preferences) {
         this.importFormatPreferences = preferences;
     }
@@ -196,9 +190,6 @@ public class INSPIREFetcher implements SearchBasedParserFetcher, EntryBasedFetch
         // Use retry mechanism for robust fetching
         List<BibEntry> results = performSearchWithRetry(url, entry.getCitationKey().orElse("unknown"));
 
-        // Apply texkeys extraction - CRITICAL for Issue #12292
-        results.forEach(this::setTexkeys);
-
         // Validate and log results
         validateResults(results, entry.getCitationKey().orElse("unknown"));
 
@@ -249,7 +240,10 @@ public class INSPIREFetcher implements SearchBasedParserFetcher, EntryBasedFetch
                                results.size(), identifier);
                 }
 
-                // Apply post-processing
+                // Apply texkeys extraction first - CRITICAL for Issue #12292
+                results.forEach(this::setTexkeys);
+                
+                // Apply post-processing (needs to run after setTexkeys for accurate logging)
                 results.forEach(this::doPostCleanup);
                 return results;
 
